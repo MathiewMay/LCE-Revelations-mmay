@@ -1,0 +1,3 @@
+[submodule "Cactus.ModLoader"]
+	path = Cactus.ModLoader
+	url = https://github.com/MathiewMay/Cactus.ModLoader.git
