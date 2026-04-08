@@ -1,4 +1,11 @@
 #include "stdafx.h"
+#ifdef CACTUS_MODLOADER
+#include "../Minecraft.World/TileItem.h"
+#include "Server/Events/Player/PlayerBlockPlaceEvent.h"
+#include "Server/Events/Player/PlayerFlightStartedEvent.h"
+#include "Server/Events/Player/PlayerFlightEndedEvent.h"
+#include "Common/EventSystem/EventBus.h"
+#endif
 #include "PlayerConnection.h"
 #include "ServerPlayer.h"
 #include "ServerLevel.h"
@@ -346,11 +353,23 @@ void PlayerConnection::handleMovePlayer(shared_ptr<MovePlayerPacket> packet)
 		}
 
 		// 4J Stu Added to stop server player y pos being different than client when flying
+#ifdef CACTUS_MODLOADER
+		bool cmlWasFlying = player->abilities.flying;
+#endif
 		if(player->abilities.mayfly || player->isAllowedToFly() )
 		{
 			player->abilities.flying = packet->isFlying;
 		}
 		else player->abilities.flying = false;
+#ifdef CACTUS_MODLOADER
+		if (!cmlWasFlying && player->abilities.flying) {
+			PlayerFlightStartedEvent cmlFlightEvent(player.get());
+			EventBus::Get().fire(cmlFlightEvent);
+		} else if (cmlWasFlying && !player->abilities.flying) {
+			PlayerFlightEndedEvent cmlFlightEvent(player.get());
+			EventBus::Get().fire(cmlFlightEvent);
+		}
+#endif
 
 		player->doTick(false);
 		player->ySlideOffset = 0;
@@ -706,6 +725,25 @@ void PlayerConnection::handleUseItem(shared_ptr<UseItemPacket> packet)
 				int savedItemCount = item ? item->count : 0;
 #endif
 
+#ifdef CACTUS_MODLOADER
+				if (item != nullptr && item->id > 0) {
+					Item* cmlItemBase = Item::items[item->id];
+					if (cmlItemBase != nullptr && dynamic_cast<TileItem*>(cmlItemBase) != nullptr) {
+						PlayerBlockPlaceEvent cmlPlaceEvent(player.get(), x, y, z, level->getTile(x, y, z));
+						EventBus::Get().fire(cmlPlaceEvent);
+						if (cmlPlaceEvent.isCancelled()) {
+							player->connection->send(std::make_shared<TileUpdatePacket>(x, y + 1, z, level));
+							player->connection->send(std::make_shared<TileUpdatePacket>(x, y - 1, z, level));
+							player->connection->send(std::make_shared<TileUpdatePacket>(x + 1, y, z, level));
+							player->connection->send(std::make_shared<TileUpdatePacket>(x - 1, y, z, level));
+							player->connection->send(std::make_shared<TileUpdatePacket>(x, y, z + 1, level));
+							player->connection->send(std::make_shared<TileUpdatePacket>(x, y, z - 1, level));
+							player->connection->send(std::make_shared<TileUpdatePacket>(x, y, z, level));
+							return;
+						}
+					}
+				}
+#endif
 				player->gameMode->useItemOn(player, level, item, x, y, z, face, packet->getClickX(), packet->getClickY(), packet->getClickZ());
 
 #if defined(_WINDOWS64) && defined(MINECRAFT_SERVER_BUILD)
@@ -1978,7 +2016,19 @@ bool PlayerConnection::isServerPacketListener()
 
 void PlayerConnection::handlePlayerAbilities(shared_ptr<PlayerAbilitiesPacket> playerAbilitiesPacket)
 {
+#ifdef CACTUS_MODLOADER
+	bool cmlWasFlying = player->abilities.flying;
+#endif
 	player->abilities.flying = playerAbilitiesPacket->isFlying() && player->abilities.mayfly;
+#ifdef CACTUS_MODLOADER
+	if (!cmlWasFlying && player->abilities.flying) {
+		PlayerFlightStartedEvent cmlFlightEvent(player.get());
+		EventBus::Get().fire(cmlFlightEvent);
+	} else if (cmlWasFlying && !player->abilities.flying) {
+		PlayerFlightEndedEvent cmlFlightEvent(player.get());
+		EventBus::Get().fire(cmlFlightEvent);
+	}
+#endif
 }
 
 //void handleChatAutoComplete(ChatAutoCompletePacket packet) {

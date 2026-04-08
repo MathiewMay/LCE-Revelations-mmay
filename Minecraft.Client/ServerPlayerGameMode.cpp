@@ -1,4 +1,9 @@
 #include "stdafx.h"
+#ifdef CACTUS_MODLOADER
+#include "Server/Events/Player/PlayerBlockBreakEvent.h"
+#include "Server/Events/Item/ItemInteractEvent.h"
+#include "Common/EventSystem/EventBus.h"
+#endif
 #include "ServerPlayerGameMode.h"
 #include "ServerLevel.h"
 #include "ServerPlayer.h"
@@ -254,6 +259,14 @@ bool ServerPlayerGameMode::destroyBlock(int x, int y, int z)
 
 	int t = level->getTile(x, y, z);
 	int data = level->getData(x, y, z);
+#ifdef CACTUS_MODLOADER
+	PlayerBlockBreakEvent cmlBreakEvent(player.get(), x, y, z, t, data);
+	EventBus::Get().fire(cmlBreakEvent);
+	if (cmlBreakEvent.isCancelled()) {
+		player->connection->send(std::make_shared<TileUpdatePacket>(x, y, z, level));
+		return false;
+	}
+#endif
 #if defined(_WINDOWS64) && defined(MINECRAFT_SERVER_BUILD)
 	int eventExp = 0;
 	if (!isCreative() && !gameModeForPlayer->isAdventureRestricted())
@@ -426,6 +439,10 @@ bool ServerPlayerGameMode::useItemOn(shared_ptr<Player> player, Level *level, sh
 	}
 
 	if (item == nullptr || !player->isAllowedToUse(item)) return false;
+#ifdef CACTUS_MODLOADER
+	ItemInteractEvent cmlItemEvent(item.get(), static_cast<ServerLevel*>(this->level), this->player.get());
+	EventBus::Get().fire(cmlItemEvent);
+#endif
 	if (isCreative())
 	{
 		int aux = item->getAuxValue();

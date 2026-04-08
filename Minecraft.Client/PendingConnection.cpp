@@ -1,4 +1,8 @@
 #include "stdafx.h"
+#ifdef CACTUS_MODLOADER
+#include "Server/Events/Player/PlayerConnectionEvent.h"
+#include "Common/EventSystem/EventBus.h"
+#endif
 #include "PendingConnection.h"
 #include "PlayerConnection.h"
 #include "ServerConnection.h"
@@ -572,6 +576,10 @@ void PendingConnection::handleAcceptedLogin(shared_ptr<LoginPacket> packet)
 #if defined(_WINDOWS64) && defined(MINECRAFT_SERVER_BUILD)
 		ServerRuntime::ServerLogManager::OnAcceptedPlayerLogin(GetPendingConnectionSmallId(connection), name,
 			packet->m_offlineXuid, packet->m_onlineXuid, packet->m_isGuest);
+#endif
+#ifdef CACTUS_MODLOADER
+		PlayerConnectionEvent cmlConnEvent(playerEntity.get());
+		EventBus::Get().fire(cmlConnEvent);
 #endif
 		server->getPlayers()->placeNewPlayer(connection, playerEntity, packet);
 		connection = nullptr;	// We've moved responsibility for this over to the new PlayerConnection, nullptr so we don't delete our reference to it here in our dtor

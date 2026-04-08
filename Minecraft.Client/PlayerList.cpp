@@ -1,4 +1,8 @@
 #include "stdafx.h"
+#ifdef CACTUS_MODLOADER
+#include "Server/Events/Player/PlayerJoinEvent.h"
+#include "Common/EventSystem/EventBus.h"
+#endif
 #include "PlayerList.h"
 
 #include <memory>
@@ -532,6 +536,11 @@ void PlayerList::add(shared_ptr<ServerPlayer> player)
 	}
 
 	players.push_back(player);
+
+#ifdef CACTUS_MODLOADER
+	PlayerJoinEvent cmlJoinEvent(player.get());
+	EventBus::Get().fire(cmlJoinEvent);
+#endif
 
 	// 4J Added
 	addPlayerToReceiving(player);

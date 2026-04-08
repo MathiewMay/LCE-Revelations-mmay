@@ -92,6 +92,9 @@
 #define DISABLE_LEVELTICK_THREAD
 
 Minecraft *Minecraft::m_instance = nullptr;
+#ifdef CACTUS_MODLOADER
+Loader *Minecraft::modloader = nullptr;
+#endif
 int64_t Minecraft::frameTimes[512];
 int64_t Minecraft::tickTimes[512];
 int Minecraft::frameTimePos = 0;

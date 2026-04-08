@@ -37,6 +37,9 @@ class LevelSettings;
 class ColourTable;
 class MultiPlayerGameMode;
 class PsPlusUpsellWrapper;
+#ifdef CACTUS_MODLOADER
+class Loader;
+#endif
 
 #include "../Minecraft.World/File.h"
 #include "../Minecraft.World/DisconnectPacket.h"
@@ -57,6 +60,9 @@ private:
 
 public:
 	static const wstring VERSION_STRING;
+#ifdef CACTUS_MODLOADER
+	static Loader* modloader;
+#endif
 	Minecraft(Component *mouseComponent, Canvas *parent, MinecraftApplet *minecraftApplet, int width, int height, bool fullscreen);
 	void init();
 

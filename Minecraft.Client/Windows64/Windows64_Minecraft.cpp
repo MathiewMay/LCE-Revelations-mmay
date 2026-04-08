@@ -3,6 +3,11 @@
 
 #include "stdafx.h"
 
+#ifdef CACTUS_MODLOADER
+#include "Loader.h"
+#include "Registry/IDs.h"
+#endif
+
 #include <assert.h>
 #include <iostream>
 #include <ShellScalingApi.h>
@@ -1443,6 +1448,12 @@ static Minecraft* InitialiseMinecraftRuntime()
 	Level::enableLightingCache();
 	Tile::CreateNewThreadStorage();
 
+#ifdef CACTUS_MODLOADER
+	static Loader loader;
+	loader.collectMods();
+	Minecraft::modloader = &loader;
+#endif
+
 	Minecraft::main();
 	Minecraft* pMinecraft = Minecraft::GetInstance();
 	if (pMinecraft == nullptr)
@@ -1676,6 +1687,14 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	}
 	g_bResizeReady = true;
 
+#ifdef CACTUS_MODLOADER
+	if (Minecraft::modloader) {
+		Minecraft::modloader->refreshClientScripts();
+		Minecraft::modloader->executeClientScripts("main", true);
+	}
+	IDMapping::get()->init();
+#endif
+
 	//app.TemporaryCreateGameStart();
 
 	//Sleep(10000);
@@ -1804,6 +1823,10 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		{
 			pMinecraft->applyFrameMouseLook();  // Per-frame mouse look (before ticks + render)
 			pMinecraft->run_middle();
+#ifdef CACTUS_MODLOADER
+			if (Minecraft::modloader)
+				Minecraft::modloader->executeClientScripts("update");
+#endif
 			app.SetAppPaused( g_NetworkManager.IsLocalGame() && g_NetworkManager.GetPlayerCount() == 1 && ui.IsPauseMenuDisplayed(ProfileManager.GetPrimaryPad()) );
 		}
 		else

@@ -1,6 +1,12 @@
 #include "stdafx.h"
 //#include "Minecraft.h"
 
+#ifdef CACTUS_MODLOADER
+#include "Loader.h"
+#include "Common/EventSystem/EventBus.h"
+#endif
+#include "Minecraft.h"
+
 #include <ctime>
 
 #include "ConsoleInput.h"
@@ -579,6 +585,15 @@ MinecraftServer::MinecraftServer()
 	InitializeCriticalSection(&m_consoleInputCS);
 
 	DispenserBootstrap::bootStrap();
+
+#ifdef CACTUS_MODLOADER
+	if (Minecraft::modloader) {
+		EventBus::Get().clearListeners();
+		Minecraft::modloader->registerServerFunctions(this);
+		Minecraft::modloader->refreshServerScripts();
+		Minecraft::modloader->executeServerScripts("main", true);
+	}
+#endif
 }
 
 MinecraftServer::~MinecraftServer()
@@ -2176,6 +2191,11 @@ void MinecraftServer::tick()
 	Vec3::resetPool();
 
 	tickCount++;
+
+#ifdef CACTUS_MODLOADER
+	if (Minecraft::modloader)
+		Minecraft::modloader->executeServerScripts("tick");
+#endif
 
 	// 4J We need to update client difficulty levels based on the servers
 	Minecraft *pMinecraft = Minecraft::GetInstance();
